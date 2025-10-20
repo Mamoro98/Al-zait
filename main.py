@@ -54,10 +54,10 @@ class AlZaitScheduler:
         self.scheduler = BlockingScheduler()
         logger.info("Scheduler configured with memory storage")
     
-    def run_daily_briefing(self):
-        """Execute the daily briefing job."""
+    def run_hourly_briefing(self):
+        """Execute the hourly briefing job."""
         logger.info("=" * 60)
-        logger.info("🗞️ STARTING AL ZAIT DAILY BRIEFING")
+        logger.info("🗞️ STARTING AL ZAIT HOURLY BRIEFING")
         logger.info("=" * 60)
         
         start_time = datetime.now()
@@ -99,7 +99,7 @@ class AlZaitScheduler:
             logger.error(f"Failed after {execution_time.total_seconds():.2f} seconds")
         
         logger.info("=" * 60)
-        logger.info("🏁 AL ZAIT DAILY BRIEFING COMPLETED")
+        logger.info("🏁 AL ZAIT HOURLY BRIEFING COMPLETED")
         logger.info("=" * 60)
     
     def test_configuration(self):
@@ -188,28 +188,27 @@ class AlZaitScheduler:
             logger.error("Configuration tests failed. Please fix issues before starting scheduler.")
             return
         
-        # Add the daily job
+        # Add the hourly job
         self.scheduler.add_job(
-            func=self.run_daily_briefing,
+            func=self.run_hourly_briefing,
             trigger="cron",
-            hour=Config.SCHEDULE_HOUR,
-            minute=Config.SCHEDULE_MINUTE,
-            id="daily_briefing",
-            name="Al Zait Daily News Briefing",
+            minute=Config.SCHEDULE_MINUTE,  # Run every hour at this minute
+            id="hourly_briefing",
+            name="Al Zait Hourly News Briefing",
             replace_existing=True
         )
         
-        logger.info(f"📅 Daily briefing scheduled for {Config.SCHEDULE_HOUR:02d}:{Config.SCHEDULE_MINUTE:02d}")
+        logger.info(f"🕐 Hourly briefing scheduled for every hour at minute {Config.SCHEDULE_MINUTE:02d}")
         
         # Show next run time
-        job = self.scheduler.get_job("daily_briefing")
+        job = self.scheduler.get_job("hourly_briefing")
         if job:
             try:
                 next_run = job.next_run_time
                 logger.info(f"⏰ Next run: {next_run}")
             except AttributeError:
                 # Handle different APScheduler versions
-                logger.info(f"⏰ Job scheduled successfully for {Config.SCHEDULE_HOUR:02d}:{Config.SCHEDULE_MINUTE:02d}")
+                logger.info(f"⏰ Job scheduled successfully for every hour at minute {Config.SCHEDULE_MINUTE:02d}")
         
         # Start the scheduler
         try:
@@ -224,7 +223,7 @@ class AlZaitScheduler:
     def run_once(self):
         """Run the briefing once immediately (for testing)."""
         logger.info("Running Al Zait briefing once (test mode)...")
-        self.run_daily_briefing()
+        self.run_hourly_briefing()
 
 def main():
     """Main function with command-line interface."""
