@@ -77,6 +77,22 @@ def start_health_server():
     except Exception as e:
         logger.error(f"Health server error: {e}")
 
+def run_interactive_bot():
+    """Run the interactive Telegram bot."""
+    try:
+        from src.bots.telegram_interactive_bot import TelegramInteractiveBot
+        
+        logger.info("🤖 Starting Interactive Telegram Bot...")
+        bot = TelegramInteractiveBot()
+        bot.run()  # This will block and handle messages
+        
+    except KeyboardInterrupt:
+        logger.info("🛑 Interactive bot stopped by user")
+    except Exception as e:
+        logger.error(f"💥 Interactive bot error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
 def run_news_agent():
     """Run the news agent with appropriate configuration."""
     try:
@@ -91,9 +107,17 @@ def run_news_agent():
             logger.error("❌ Configuration test failed")
             return
         
-        # Start the scheduler
+        # Start the scheduler in a separate thread
         logger.info("🚀 Starting Al Zait news agent...")
-        scheduler.start_scheduler()
+        
+        import threading
+        scheduler_thread = threading.Thread(target=scheduler.start_scheduler, daemon=True)
+        scheduler_thread.start()
+        
+        logger.info("✅ News agent scheduler started in background")
+        
+        # Now start the interactive bot (this will block)
+        run_interactive_bot()
         
     except KeyboardInterrupt:
         logger.info("🛑 News agent stopped by user")
