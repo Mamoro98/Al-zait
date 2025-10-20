@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Railway-optimized start script for Al Zait News Agent."""
+"""Clean Railway start script - ONLY new intelligent agents."""
 
 import os
 import sys
-import asyncio
 import threading
+import time
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -12,7 +12,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 sys.path.append('src')
 
 from loguru import logger
-from src.utils.feature_detection import feature_detector
 from src.utils.config import Config
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -24,15 +23,11 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             
-            # Get system status
-            deployment_info = feature_detector.get_deployment_info()
-            
             health_data = {
                 'status': 'healthy',
                 'timestamp': datetime.now().isoformat(),
-                'mode': deployment_info['mode'],
-                'ai_capabilities': deployment_info['ai_capabilities'],
-                'features': deployment_info['total_features']
+                'service': 'Al Zait News Agent',
+                'version': 'Railway-Optimized'
             }
             
             import json
@@ -42,117 +37,118 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             self.end_headers()
     
     def log_message(self, format, *args):
-        # Suppress default logging
-        return
+        return  # Suppress default logging
 
 def setup_logging():
     """Setup logging for Railway deployment."""
-    # Remove default logger
     logger.remove()
     
-    # Add console logging (Railway captures this)
+    # Console logging for Railway
     logger.add(
         sys.stdout,
-        level=os.getenv("LOG_LEVEL", "INFO"),
+        level="INFO",
         format="{time:HH:mm:ss} | {level: <8} | {message}"
     )
     
-    # Add file logging
+    # File logging
     logger.add(
         "data/railway.log",
         level="DEBUG",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {message}",
         rotation="10 MB",
-        retention="3 days"  # Shorter retention for Railway
+        retention="3 days"
     )
 
 def start_health_server():
-    """Start health check server for Railway."""
+    """Start health check server."""
     port = int(os.getenv('PORT', 8000))
     
     try:
         server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
-        logger.info(f"🏥 Health check server started on port {port}")
+        logger.info(f"🏥 Health server started on port {port}")
         server.serve_forever()
     except Exception as e:
         logger.error(f"Health server error: {e}")
 
+def run_intelligent_agents():
+    """Run ONLY the new intelligent dual-agent system."""
+    try:
+        # Import ONLY the new agents
+        from src.agents.collector_agent import CollectorAgent
+        from src.agents.editor_agent import EditorAgent
+        from apscheduler.schedulers.blocking import BlockingScheduler
+        
+        logger.info("🤖 Initializing intelligent agents...")
+        
+        # Create agents
+        collector = CollectorAgent()
+        editor = EditorAgent()
+        
+        # Create scheduler
+        scheduler = BlockingScheduler()
+        
+        # Add ONLY the new intelligent jobs
+        scheduler.add_job(
+            func=lambda: collector.collect_news(),
+            trigger="cron",
+            minute=0,  # Every hour at minute 0
+            id="intelligent_collection",
+            name="Intelligent News Collection",
+            replace_existing=True
+        )
+        
+        scheduler.add_job(
+            func=lambda: editor.create_daily_digest(),
+            trigger="cron",
+            hour=8,  # 8 AM daily
+            minute=0,
+            id="intelligent_digest",
+            name="Intelligent Daily Digest",
+            replace_existing=True
+        )
+        
+        logger.info("📅 Intelligent Collection: Every hour at minute 0")
+        logger.info("📰 Intelligent Digest: Daily at 8:00 AM")
+        logger.info("🚀 Starting intelligent scheduler...")
+        
+        # Start scheduler (this blocks)
+        scheduler.start()
+        
+    except KeyboardInterrupt:
+        logger.info("🛑 Agents stopped by user")
+    except Exception as e:
+        logger.error(f"💥 Agent error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
 def run_interactive_bot():
-    """Run the interactive Telegram bot."""
+    """Run interactive Telegram bot."""
     try:
         from src.bots.telegram_interactive_bot import TelegramInteractiveBot
         
-        logger.info("🤖 Starting Interactive Telegram Bot...")
+        logger.info("🤖 Starting Interactive Bot...")
         bot = TelegramInteractiveBot()
-        bot.start_bot_sync()  # This will block and handle messages
         
-    except KeyboardInterrupt:
-        logger.info("🛑 Interactive bot stopped by user")
+        if not bot.is_available():
+            logger.warning("⚠️ Interactive bot not fully available (missing vector DB)")
+            logger.info("📝 Bot will still respond to commands and basic questions")
+        
+        bot.start_bot_sync()  # This blocks
+        
     except Exception as e:
         logger.error(f"💥 Interactive bot error: {e}")
         import traceback
         logger.error(traceback.format_exc())
 
-def run_news_agent():
-    """Run the news agent with appropriate configuration."""
-    try:
-        # Import the scheduler
-        from main import AlZaitScheduler
-        
-        # Create and configure scheduler
-        scheduler = AlZaitScheduler()
-        
-        # Test configuration
-        if not scheduler.test_configuration():
-            logger.error("❌ Configuration test failed")
-            return
-        
-        # Start the scheduler in a separate thread
-        logger.info("🚀 Starting Al Zait news agent...")
-        
-        import threading
-        scheduler_thread = threading.Thread(target=scheduler.start_scheduler, daemon=True)
-        scheduler_thread.start()
-        
-        logger.info("✅ News agent scheduler started in background")
-        
-        # Now start the interactive bot (this will block)
-        run_interactive_bot()
-        
-    except KeyboardInterrupt:
-        logger.info("🛑 News agent stopped by user")
-    except Exception as e:
-        logger.error(f"💥 News agent error: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-
 def main():
-    """Main entry point for Railway deployment."""
+    """Clean Railway main - NO old system!"""
     setup_logging()
     
-    logger.info("🚂 AL ZAIT - RAILWAY DEPLOYMENT")
+    logger.info("🚂 AL ZAIT - CLEAN RAILWAY DEPLOYMENT")
     logger.info("=" * 50)
-    
-    # Display feature information
-    deployment_info = feature_detector.get_deployment_info()
-    feature_comparison = feature_detector.get_feature_comparison()
-    
-    logger.info(f"🏗️ Deployment Mode: {deployment_info['mode']}")
-    logger.info(f"🧠 AI Capabilities: {deployment_info['ai_capabilities']}")
-    logger.info(f"🎙️ Audio: {deployment_info['audio_capabilities']}")
-    logger.info(f"🔍 Search: {deployment_info['search_type']}")
-    logger.info(f"💾 Storage: {feature_comparison['storage']['current']}")
-    logger.info(f"🐳 Image Size: {feature_comparison['deployment_size']['current']}")
-    logger.info("")
-    
-    # Show upgrade suggestions if in lightweight mode
-    if deployment_info['ai_capabilities'] == 'Lightweight':
-        suggestions = feature_detector.get_upgrade_suggestions()
-        if suggestions:
-            logger.info("💡 Upgrade Options:")
-            for suggestion in suggestions[:2]:  # Show top 2
-                logger.info(f"   {suggestion}")
-            logger.info("")
+    logger.info("🧹 ONLY New Intelligent Agents Running")
+    logger.info("❌ Old Spammy System DISABLED")
+    logger.info("=" * 50)
     
     # Validate configuration
     config_errors = Config.validate_config()
@@ -165,20 +161,31 @@ def main():
     
     logger.info("✅ Configuration validated")
     
-    # Start health check server in background
+    # Start health server in background
     health_thread = threading.Thread(target=start_health_server, daemon=True)
     health_thread.start()
+    time.sleep(1)
+    logger.info("✅ Health server running")
     
-    # Give health server time to start
-    import time
-    time.sleep(2)
+    # Choose mode based on environment
+    mode = os.getenv("RAILWAY_MODE", "both")  # "agents", "bot", or "both"
     
-    logger.info("✅ Health check server running")
-    logger.info("🎯 Starting main news agent...")
-    logger.info("")
-    
-    # Run the main news agent
-    run_news_agent()
+    if mode == "agents":
+        logger.info("🤖 Starting ONLY intelligent agents...")
+        run_intelligent_agents()  # Blocks
+        
+    elif mode == "bot":
+        logger.info("💬 Starting ONLY interactive bot...")
+        run_interactive_bot()  # Blocks
+        
+    else:  # both (default)
+        logger.info("🚀 Starting intelligent agents in background...")
+        agents_thread = threading.Thread(target=run_intelligent_agents, daemon=True)
+        agents_thread.start()
+        time.sleep(2)
+        
+        logger.info("💬 Starting interactive bot...")
+        run_interactive_bot()  # Blocks
 
 if __name__ == "__main__":
     main()
