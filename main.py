@@ -19,8 +19,17 @@ class AlZaitScheduler:
     """Scheduler for Al Zait News Agent."""
     
     def __init__(self):
-        """Initialize the scheduler."""
+        """Initialize the scheduler with dual-agent system."""
+        # Original agent for backward compatibility
         self.agent = AlZaitNewsAgent()
+        
+        # New intelligent dual-agent system
+        from src.agents.collector_agent import CollectorAgent
+        from src.agents.editor_agent import EditorAgent
+        
+        self.collector_agent = CollectorAgent()  # Hourly: collect + crisis alerts
+        self.editor_agent = EditorAgent()        # Daily: intelligent digest
+        
         self.scheduler = None
         self._setup_logging()
         self._setup_scheduler()
@@ -100,6 +109,82 @@ class AlZaitScheduler:
         
         logger.info("=" * 60)
         logger.info("🏁 AL ZAIT HOURLY BRIEFING COMPLETED")
+        logger.info("=" * 60)
+    
+    def run_hourly_collection(self):
+        """Execute the hourly news collection job (NEW INTELLIGENT SYSTEM)."""
+        logger.info("=" * 60)
+        logger.info("🔍 STARTING AL ZAIT HOURLY COLLECTION")
+        logger.info("=" * 60)
+        
+        start_time = datetime.now()
+        
+        try:
+            # Run the intelligent collector agent
+            result = self.collector_agent.collect_news()
+            
+            # Check for errors
+            errors = result.get("errors", [])
+            if errors:
+                logger.error("Collection completed with errors:")
+                for error in errors:
+                    logger.error(f"  - {error}")
+            else:
+                # Log success
+                stats = result.get("processing_stats", {})
+                execution_time = datetime.now() - start_time
+                
+                logger.info(f"✅ Collection successful in {execution_time.total_seconds():.2f} seconds")
+                logger.info(f"   Articles stored: {stats.get('articles_stored', 0)}")
+                
+                # Check for crisis alerts
+                if stats.get('crisis_alert_sent', False):
+                    logger.warning(f"🚨 CRISIS ALERT SENT! Score: {stats.get('crisis_score', 0)}")
+                
+        except Exception as e:
+            execution_time = datetime.now() - start_time
+            logger.error(f"Critical error in hourly collection: {e}")
+            logger.error(f"Failed after {execution_time.total_seconds():.2f} seconds")
+        
+        logger.info("=" * 60)
+        logger.info("🏁 AL ZAIT HOURLY COLLECTION COMPLETED")
+        logger.info("=" * 60)
+    
+    def run_daily_digest(self):
+        """Execute the daily digest creation job (NEW INTELLIGENT SYSTEM)."""
+        logger.info("=" * 60)
+        logger.info("📰 STARTING AL ZAIT DAILY DIGEST CREATION")
+        logger.info("=" * 60)
+        
+        start_time = datetime.now()
+        
+        try:
+            # Run the intelligent editor agent
+            result = self.editor_agent.create_daily_digest()
+            
+            # Check for errors
+            errors = result.get("errors", [])
+            if errors:
+                logger.error("Digest creation completed with errors:")
+                for error in errors:
+                    logger.error(f"  - {error}")
+            else:
+                # Log success
+                stats = result.get("processing_stats", {})
+                execution_time = datetime.now() - start_time
+                
+                logger.info(f"✅ Daily digest successful in {execution_time.total_seconds():.2f} seconds")
+                logger.info(f"   Articles processed: {stats.get('articles_collected', 0)}")
+                logger.info(f"   Events identified: {len(result.get('event_summaries', []))}")
+                logger.info(f"   Digest delivered: {stats.get('digest_delivered', False)}")
+                
+        except Exception as e:
+            execution_time = datetime.now() - start_time
+            logger.error(f"Critical error in daily digest: {e}")
+            logger.error(f"Failed after {execution_time.total_seconds():.2f} seconds")
+        
+        logger.info("=" * 60)
+        logger.info("🏁 AL ZAIT DAILY DIGEST COMPLETED")
         logger.info("=" * 60)
     
     def test_configuration(self):
@@ -188,27 +273,47 @@ class AlZaitScheduler:
             logger.error("Configuration tests failed. Please fix issues before starting scheduler.")
             return
         
-        # Add the hourly job
+        # Add the hourly collection job (new intelligent system)
         self.scheduler.add_job(
-            func=self.run_hourly_briefing,
+            func=self.run_hourly_collection,
             trigger="cron",
             minute=Config.SCHEDULE_MINUTE,  # Run every hour at this minute
-            id="hourly_briefing",
-            name="Al Zait Hourly News Briefing",
+            id="hourly_collection",
+            name="Al Zait Hourly News Collection",
             replace_existing=True
         )
         
-        logger.info(f"🕐 Hourly briefing scheduled for every hour at minute {Config.SCHEDULE_MINUTE:02d}")
+        # Add the daily digest job (8 AM daily)
+        self.scheduler.add_job(
+            func=self.run_daily_digest,
+            trigger="cron",
+            hour=8,  # 8 AM daily
+            minute=0,
+            id="daily_digest",
+            name="Al Zait Daily Intelligent Digest",
+            replace_existing=True
+        )
         
-        # Show next run time
-        job = self.scheduler.get_job("hourly_briefing")
-        if job:
+        logger.info(f"🕐 Hourly collection scheduled for every hour at minute {Config.SCHEDULE_MINUTE:02d}")
+        logger.info(f"📰 Daily digest scheduled for 08:00 every day")
+        
+        # Show next run times
+        collection_job = self.scheduler.get_job("hourly_collection")
+        digest_job = self.scheduler.get_job("daily_digest")
+        
+        if collection_job:
             try:
-                next_run = job.next_run_time
-                logger.info(f"⏰ Next run: {next_run}")
+                next_run = collection_job.next_run_time
+                logger.info(f"⏰ Next collection: {next_run}")
             except AttributeError:
-                # Handle different APScheduler versions
-                logger.info(f"⏰ Job scheduled successfully for every hour at minute {Config.SCHEDULE_MINUTE:02d}")
+                logger.info(f"⏰ Collection job scheduled successfully")
+        
+        if digest_job:
+            try:
+                next_run = digest_job.next_run_time
+                logger.info(f"📰 Next digest: {next_run}")  
+            except AttributeError:
+                logger.info(f"📰 Digest job scheduled successfully")
         
         # Start the scheduler
         try:

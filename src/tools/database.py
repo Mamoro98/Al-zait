@@ -68,6 +68,21 @@ class NewsDatabase:
                 )
             """)
             
+            # Table for digest articles (hourly collection for daily processing)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS digest_articles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    url TEXT UNIQUE NOT NULL,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    language TEXT DEFAULT 'en',
+                    collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    processed_at TIMESTAMP NULL,
+                    digest_status TEXT DEFAULT 'pending'
+                )
+            """)
+            
             conn.commit()
     
     def is_url_processed(self, url: str) -> bool:
@@ -211,5 +226,89 @@ class NewsDatabase:
                 stats['success_rate'] = (row[1] / row[0]) * 100
             else:
                 stats['success_rate'] = 0
+            
+            return stats
+    
+    # === DIGEST SYSTEM METHODS ===
+    
+    def store_article_for_digest(self, title: str, content: str, url: str, 
+                                source: str, language: str, collected_at) -> int:
+        """Store article for daily digest processing."""
+        with self._get_connection() as conn:
+            try:
+                cursor = conn.execute("""
+                    INSERT OR REPLACE INTO digest_articles 
+                    (url, title, content, source, language, collected_at, digest_status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pending')
+                """, (url, title, content, source, language, collected_at))
+                conn.commit()
+                return cursor.lastrowid
+            except Exception as e:
+                logger.error(f"Error storing article for digest: {e}")
+                return 0
+    
+    def get_articles_for_digest(self, since) -> List[Dict[str, Any]]:
+        """Get articles collected since a specific time for digest processing."""
+        with self._get_connection() as conn:
+            cursor = conn.execute("""
+                SELECT url, title, content, source, language, collected_at
+                FROM digest_articles 
+                WHERE collected_at >= ? AND digest_status = 'pending'
+                ORDER BY collected_at DESC
+            """, (since,))
+            
+            articles = []
+            for row in cursor.fetchall():
+                articles.append({
+                    'url': row[0],
+                    'title': row[1], 
+                    'content': row[2],
+                    'source': row[3],
+                    'language': row[4],
+                    'collected_at': row[5]
+                })
+            
+            return articles
+    
+    def mark_digest_articles_processed(self, urls: List[str]):
+        """Mark digest articles as processed after successful digest creation."""
+        with self._get_connection() as conn:
+            try:
+                for url in urls:
+                    conn.execute("""
+                        UPDATE digest_articles 
+                        SET digest_status = 'processed', processed_at = CURRENT_TIMESTAMP
+                        WHERE url = ?
+                    """, (url,))
+                conn.commit()
+                logger.info(f"Marked {len(urls)} digest articles as processed")
+            except Exception as e:
+                logger.error(f"Error marking digest articles as processed: {e}")
+    
+    def get_digest_stats(self) -> Dict[str, int]:
+        """Get statistics about the digest system."""
+        with self._get_connection() as conn:
+            stats = {}
+            
+            # Pending articles
+            cursor = conn.execute("""
+                SELECT COUNT(*) FROM digest_articles WHERE digest_status = 'pending'
+            """)
+            stats['pending_articles'] = cursor.fetchone()[0]
+            
+            # Processed today
+            cursor = conn.execute("""
+                SELECT COUNT(*) FROM digest_articles 
+                WHERE digest_status = 'processed' 
+                AND processed_at >= date('now')
+            """)
+            stats['processed_today'] = cursor.fetchone()[0]
+            
+            # Total collected this week
+            cursor = conn.execute("""
+                SELECT COUNT(*) FROM digest_articles 
+                WHERE collected_at >= datetime('now', '-7 days')
+            """)
+            stats['collected_this_week'] = cursor.fetchone()[0]
             
             return stats
