@@ -1,4 +1,4 @@
-"""LLM client for Al Zait News Agent supporting Ollama, Groq, and Gemini."""
+"""LLM client for Al Zait News Agent supporting Ollama, Groq, and Gemini 2.5 Flash."""
 
 import json
 import requests
@@ -10,7 +10,7 @@ from src.utils.config import Config
 from src.utils.prompts import SYSTEM_PROMPT
 
 class LLMClient:
-    """Client for interacting with LLMs (Ollama local, Gemini primary, Groq backup)."""
+    """Client for interacting with LLMs (Ollama local, Gemini 2.5 Flash primary, Groq backup)."""
     
     def __init__(self):
         """Initialize the LLM client."""
@@ -23,8 +23,8 @@ class LLMClient:
         if Config.GEMINI_API_KEY:
             try:
                 genai.configure(api_key=Config.GEMINI_API_KEY)
-                self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-                logger.info("Gemini client initialized successfully")
+                self.gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+                logger.info("Gemini 2.5 Flash client initialized successfully")
             except Exception as e:
                 logger.warning(f"Failed to initialize Gemini client: {e}")
         
@@ -46,10 +46,10 @@ class LLMClient:
             logger.info("Response generated using Ollama (local)")
             return response
         
-        # Try Gemini second (excellent Arabic, large context)
+        # Try Gemini 2.5 Flash second (excellent Arabic, large context, latest AI)
         response = self._call_gemini(prompt, system, max_tokens)
         if response:
-            logger.info("Response generated using Gemini (primary)")
+            logger.info("Response generated using Gemini 2.5 Flash (primary)")
             return response
         
         # Fallback to Groq
@@ -102,7 +102,7 @@ class LLMClient:
             return None
     
     def _call_gemini(self, prompt: str, system_prompt: str, max_tokens: int) -> Optional[str]:
-        """Call Gemini 1.5 Flash API."""
+        """Call Gemini 2.5 Flash API."""
         if not self.gemini_model:
             return None
         
