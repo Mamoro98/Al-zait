@@ -84,7 +84,7 @@ def run_interactive_bot():
         
         logger.info("🤖 Starting Interactive Telegram Bot...")
         bot = TelegramInteractiveBot()
-        bot.run()  # This will block and handle messages
+        bot.start_bot_sync()  # This will block and handle messages
         
     except KeyboardInterrupt:
         logger.info("🛑 Interactive bot stopped by user")
