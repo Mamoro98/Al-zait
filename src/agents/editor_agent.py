@@ -30,6 +30,7 @@ class EditorAgent:
         workflow.add_node("summarize_events", self._summarize_events)
         workflow.add_node("categorize_events", self._categorize_events)  # Smart tagging
         workflow.add_node("compile_digest", self._compile_digest)
+        workflow.add_node("create_audio_digest", self._create_audio_digest)  # NEW: Audio briefing
         workflow.add_node("deliver_digest", self._deliver_digest)
         workflow.add_node("cleanup_processed", self._cleanup_processed)
         
@@ -39,12 +40,13 @@ class EditorAgent:
         workflow.add_edge("cluster_by_events", "summarize_events")
         workflow.add_edge("summarize_events", "categorize_events")
         workflow.add_edge("categorize_events", "compile_digest")
-        workflow.add_edge("compile_digest", "deliver_digest")
+        workflow.add_edge("compile_digest", "create_audio_digest")
+        workflow.add_edge("create_audio_digest", "deliver_digest")
         workflow.add_edge("deliver_digest", "cleanup_processed")
         workflow.add_edge("cleanup_processed", END)
         
         compiled_workflow = workflow.compile()
-        logger.info("Editor-in-Chief workflow built successfully with 7 nodes")
+        logger.info("Editor-in-Chief workflow built successfully with 8 nodes")
         
         return compiled_workflow
     
@@ -329,6 +331,61 @@ _عدد المقالات: {event.get('article_count', 0)}_
         
         return state
     
+    def _create_audio_digest(self, state: AgentState) -> AgentState:
+        """Create audio version of the daily digest (FREE TTS)."""
+        logger.info("🎙️ Creating audio digest with FREE TTS")
+        
+        daily_digest = state.get("daily_digest", "")
+        
+        if not daily_digest or len(daily_digest) < 50:
+            logger.warning("No digest content for audio creation")
+            state["audio_digest_path"] = None
+            state["audio_created"] = False
+            return state
+        
+        try:
+            from src.tools.tts_client import TTSClient
+            
+            tts_client = TTSClient()
+            
+            # Create complete podcast with intro/outro
+            audio_path = tts_client.create_full_podcast(daily_digest)
+            
+            if audio_path:
+                # Get audio information
+                audio_info = tts_client.get_audio_info(audio_path)
+                
+                state["audio_digest_path"] = audio_path
+                state["audio_created"] = True
+                state["audio_info"] = audio_info
+                
+                duration_min = audio_info.get('duration_minutes', 0)
+                file_size_mb = audio_info.get('file_size_mb', 0)
+                
+                logger.info(f"✅ Audio digest created successfully!")
+                logger.info(f"   Path: {audio_path}")
+                logger.info(f"   Duration: {duration_min:.1f} minutes")
+                logger.info(f"   Size: {file_size_mb:.1f} MB")
+                
+                # Update stats
+                stats = state.get("processing_stats", {})
+                stats["audio_created"] = True
+                stats["audio_duration_minutes"] = duration_min
+                stats["audio_file_size_mb"] = file_size_mb
+                state["processing_stats"] = stats
+                
+            else:
+                logger.error("Failed to create audio digest")
+                state["audio_digest_path"] = None
+                state["audio_created"] = False
+                
+        except Exception as e:
+            logger.error(f"Error creating audio digest: {e}")
+            state["audio_digest_path"] = None
+            state["audio_created"] = False
+        
+        return state
+    
     def _create_empty_digest(self) -> str:
         """Create digest when no events are available."""
         date_str = datetime.now().strftime("%d %B %Y")
@@ -352,12 +409,41 @@ _عدد المقالات: {event.get('article_count', 0)}_
             state["delivery_status"] = "failed"
             return state
         
-        # Send via Telegram
+        # Send text digest via Telegram
         telegram_client = TelegramClient()
-        success = telegram_client.send_formatted_brief_sync(daily_digest)
+        text_success = telegram_client.send_formatted_brief_sync(daily_digest)
         
-        if success:
-            logger.info("✅ Daily digest delivered successfully")
+        # Also send audio if available
+        audio_success = False
+        audio_path = state.get("audio_digest_path")
+        audio_created = state.get("audio_created", False)
+        
+        if text_success and audio_created and audio_path:
+            logger.info("🎙️ Sending audio digest...")
+            
+            # Create audio caption
+            audio_info = state.get("audio_info", {})
+            duration_min = audio_info.get('duration_minutes', 0)
+            
+            audio_caption = f"""🎙️ <b>الموجز الصوتي اليومي</b>
+            
+⏰ المدة: {duration_min:.1f} دقيقة
+🤖 بصوت الذكاء الاصطناعي
+📡 وكالة الزيت للأنباء"""
+            
+            audio_success = telegram_client.send_audio_file_sync(audio_path, audio_caption)
+            
+            if audio_success:
+                logger.info("✅ Audio digest delivered successfully")
+            else:
+                logger.warning("⚠️ Text sent but audio delivery failed")
+        
+        # Determine overall success
+        overall_success = text_success
+        if text_success:
+            logger.info("✅ Daily digest (text) delivered successfully")
+            if audio_success:
+                logger.info("✅ Audio digest also delivered successfully")
             state["delivery_status"] = "success"
         else:
             logger.error("❌ Failed to deliver daily digest")
@@ -365,7 +451,8 @@ _عدد المقالات: {event.get('article_count', 0)}_
         
         # Update stats
         stats = state.get("processing_stats", {})
-        stats["digest_delivered"] = success
+        stats["digest_delivered"] = overall_success
+        stats["audio_delivered"] = audio_success
         stats["digest_length"] = len(daily_digest)
         state["processing_stats"] = stats
         

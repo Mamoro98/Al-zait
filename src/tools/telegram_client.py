@@ -1,6 +1,7 @@
 """Telegram bot client for Al Zait News Agent."""
 
 import asyncio
+import os
 from typing import Optional
 from telegram import Bot
 from telegram.error import TelegramError
@@ -239,4 +240,46 @@ class TelegramClient:
                 
         except Exception as e:
             logger.error(f"Requests fallback failed: {e}")
+            return False
+    
+    async def send_audio_file(self, audio_path: str, caption: str = "") -> bool:
+        """Send audio file to Telegram channel."""
+        if not self.bot:
+            logger.error("Bot not initialized")
+            return False
+        
+        if not os.path.exists(audio_path):
+            logger.error(f"Audio file not found: {audio_path}")
+            return False
+        
+        try:
+            with open(audio_path, 'rb') as audio_file:
+                await self.bot.send_audio(
+                    chat_id=Config.TELEGRAM_CHAT_ID,
+                    audio=audio_file,
+                    caption=caption,
+                    parse_mode='HTML'
+                )
+            logger.info(f"Audio file sent successfully: {audio_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send audio file: {e}")
+            return False
+    
+    def send_audio_file_sync(self, audio_path: str, caption: str = "") -> bool:
+        """Synchronous wrapper for sending audio files."""
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    raise RuntimeError("Event loop is closed")
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            result = loop.run_until_complete(self.send_audio_file(audio_path, caption))
+            return result
+        except Exception as e:
+            logger.error(f"Error in sync audio send: {e}")
             return False
