@@ -1,0 +1,10 @@
+[app]
+name = "al-zait-news-agent"
+
+[build]
+builder = "dockerfile"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "always"

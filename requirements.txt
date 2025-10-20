@@ -1,0 +1,32 @@
+# Core dependencies
+langchain>=0.2.0
+langgraph>=0.2.0
+langchain-community>=0.2.0
+
+# LLM providers (free options)
+groq>=0.4.0
+ollama>=0.1.0
+
+# News and data sources
+newsapi-python>=0.2.6
+feedparser>=6.0.0
+requests>=2.28.0
+
+# Telegram bot
+python-telegram-bot>=20.0
+
+# Database (sqlite3 is built-in to Python)
+
+# Scheduling and automation
+APScheduler>=3.10.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+loguru>=0.7.0
+
+# Development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+isort>=5.12.0
