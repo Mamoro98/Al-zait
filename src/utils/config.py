@@ -29,6 +29,7 @@ class Config:
     # Agent Configuration
     MAX_ARTICLES_PER_QUERY: int = int(os.getenv("MAX_ARTICLES_PER_QUERY", "10"))
     SUMMARY_LENGTH_SENTENCES: int = int(os.getenv("SUMMARY_LENGTH_SENTENCES", "3"))
+    MAX_CONTENT_LENGTH: int = int(os.getenv("MAX_CONTENT_LENGTH", "800"))  # Max chars per article for LLM
     
     # Database
     DATABASE_PATH: str = os.getenv("DATABASE_PATH", "data/news.db")

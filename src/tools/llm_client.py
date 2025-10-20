@@ -110,49 +110,79 @@ class LLMClient:
         """Use LLM to cluster articles by events."""
         from src.utils.prompts import CLUSTERING_PROMPT
         
+        # If too many articles, batch process to stay within context limits
+        max_articles_per_batch = 15  # Conservative limit for 8K context
+        if len(articles) > max_articles_per_batch:
+            logger.info(f"Processing {len(articles)} articles in batches of {max_articles_per_batch}")
+            
+            # Process in batches and combine results
+            all_clusters = []
+            offset = 0
+            
+            for i in range(0, len(articles), max_articles_per_batch):
+                batch = articles[i:i + max_articles_per_batch]
+                batch_clusters = self._cluster_batch(batch, offset)
+                all_clusters.extend(batch_clusters)
+                offset += len(batch)
+            
+            return all_clusters
+        
+        # Process all articles at once if within limits
+        return self._cluster_batch(articles, 0)
+    
+    def _cluster_batch(self, articles: List[Dict[str, Any]], offset: int = 0) -> List[List[int]]:
+        """Cluster a batch of articles."""
+        from src.utils.prompts import CLUSTERING_PROMPT
+        
         # Prepare articles text for clustering
         articles_text = ""
         for i, article in enumerate(articles):
-            articles_text += f"[{i}] Title: {article['title']}\nContent: {article['content'][:300]}...\nSource: {article['source']}\n\n"
+            # Use same content limit as summarization for consistency
+            content_preview = article['content'][:Config.MAX_CONTENT_LENGTH//3]  # Even shorter for clustering
+            articles_text += f"[{i}] Title: {article['title']}\nContent: {content_preview}...\nSource: {article['source']}\n\n"
         
         prompt = CLUSTERING_PROMPT.format(articles=articles_text)
         
         response = self.generate_response(prompt, max_tokens=1000)
         if not response:
             # Fallback: treat each article as its own cluster
-            return [[i] for i in range(len(articles))]
+            return [[offset + i] for i in range(len(articles))]
         
         try:
             # Parse JSON response
             clusters = json.loads(response.strip())
             
-            # Validate clusters
+            # Validate clusters and adjust indices with offset
             if isinstance(clusters, list) and all(isinstance(cluster, list) for cluster in clusters):
                 # Make sure all indices are valid
                 max_index = len(articles) - 1
                 valid_clusters = []
                 for cluster in clusters:
-                    valid_cluster = [i for i in cluster if isinstance(i, int) and 0 <= i <= max_index]
+                    # Adjust indices with offset for batch processing
+                    valid_cluster = [offset + i for i in cluster if isinstance(i, int) and 0 <= i <= max_index]
                     if valid_cluster:
                         valid_clusters.append(valid_cluster)
                 
                 return valid_clusters
             else:
                 logger.error("Invalid clustering response format")
-                return [[i] for i in range(len(articles))]
+                return [[offset + i] for i in range(len(articles))]
         
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse clustering response: {e}")
-            return [[i] for i in range(len(articles))]
+            return [[offset + i] for i in range(len(articles))]
     
     def summarize_event(self, articles: List[Dict[str, Any]]) -> str:
         """Generate Arabic summary for a cluster of articles about the same event."""
         from src.utils.prompts import ARABIC_SUMMARY_PROMPT
         
-        # Prepare articles text
+        # Prepare articles text (truncate content to fit context)
         articles_text = ""
         for article in articles:
-            articles_text += f"العنوان: {article['title']}\nالمصدر: {article['source']}\nالمحتوى: {article['content']}\n\n"
+            # Truncate content to stay within token limits
+            max_length = Config.MAX_CONTENT_LENGTH
+            truncated_content = article['content'][:max_length] + "..." if len(article['content']) > max_length else article['content']
+            articles_text += f"العنوان: {article['title']}\nالمصدر: {article['source']}\nالمحتوى: {truncated_content}\n\n"
         
         prompt = ARABIC_SUMMARY_PROMPT.format(articles=articles_text)
         
