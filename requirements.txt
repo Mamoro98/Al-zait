@@ -6,6 +6,7 @@ langchain-community>=0.2.0
 # LLM providers (free options)
 groq>=0.4.0
 ollama>=0.1.0
+google-generativeai>=0.8.0
 
 # News and data sources
 newsapi-python>=0.2.6

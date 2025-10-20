@@ -137,12 +137,17 @@ class AlZaitScheduler:
         else:
             logger.warning("⚠️ Ollama not available")
         
+        if llm_status['gemini']:
+            logger.info("✅ Gemini connection OK")
+        else:
+            logger.warning("⚠️ Gemini not available")
+        
         if llm_status['groq']:
             logger.info("✅ Groq connection OK")
         else:
             logger.warning("⚠️ Groq not available")
         
-        if not llm_status['ollama'] and not llm_status['groq']:
+        if not llm_status['ollama'] and not llm_status['gemini'] and not llm_status['groq']:
             logger.error("❌ No LLM connections available")
             all_good = False
         

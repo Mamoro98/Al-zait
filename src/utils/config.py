@@ -13,6 +13,7 @@ class Config:
     # API Keys
     NEWSAPI_KEY: str = os.getenv("NEWSAPI_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     
     # Telegram Configuration
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -65,8 +66,11 @@ class Config:
         if not cls.TELEGRAM_CHAT_ID:
             errors.append("TELEGRAM_CHAT_ID is required")
         
-        if not cls.NEWSAPI_KEY and not cls.GROQ_API_KEY:
-            errors.append("At least one of NEWSAPI_KEY or GROQ_API_KEY is required")
+        if not cls.NEWSAPI_KEY:
+            errors.append("NEWSAPI_KEY is required")
+        
+        if not cls.GROQ_API_KEY and not cls.GEMINI_API_KEY:
+            errors.append("At least one of GROQ_API_KEY or GEMINI_API_KEY is required for LLM processing")
         
         return errors
     

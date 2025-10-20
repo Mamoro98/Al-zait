@@ -1,21 +1,32 @@
-"""LLM client for Al Zait News Agent supporting both Ollama and Groq."""
+"""LLM client for Al Zait News Agent supporting Ollama, Groq, and Gemini."""
 
 import json
 import requests
 from typing import List, Dict, Any, Optional, Union
 from loguru import logger
 from groq import Groq
+import google.generativeai as genai
 from src.utils.config import Config
 from src.utils.prompts import SYSTEM_PROMPT
 
 class LLMClient:
-    """Client for interacting with LLMs (Ollama local, Groq backup)."""
+    """Client for interacting with LLMs (Ollama local, Gemini primary, Groq backup)."""
     
     def __init__(self):
         """Initialize the LLM client."""
         self.ollama_base_url = Config.OLLAMA_BASE_URL
         self.ollama_model = Config.OLLAMA_MODEL
         self.groq_client = None
+        self.gemini_model = None
+        
+        # Initialize Gemini client if API key is available
+        if Config.GEMINI_API_KEY:
+            try:
+                genai.configure(api_key=Config.GEMINI_API_KEY)
+                self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+                logger.info("Gemini client initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Gemini client: {e}")
         
         # Initialize Groq client if API key is available
         if Config.GROQ_API_KEY:
@@ -26,13 +37,19 @@ class LLMClient:
                 logger.warning(f"Failed to initialize Groq client: {e}")
     
     def generate_response(self, prompt: str, system_prompt: Optional[str] = None, max_tokens: int = 2000) -> Optional[str]:
-        """Generate a response using available LLM (Ollama first, then Groq)."""
+        """Generate a response using available LLM (Ollama first, then Gemini, then Groq)."""
         system = system_prompt or SYSTEM_PROMPT
         
-        # Try Ollama first (local, free)
+        # Try Ollama first (local, unlimited)
         response = self._call_ollama(prompt, system, max_tokens)
         if response:
             logger.info("Response generated using Ollama (local)")
+            return response
+        
+        # Try Gemini second (excellent Arabic, large context)
+        response = self._call_gemini(prompt, system, max_tokens)
+        if response:
+            logger.info("Response generated using Gemini (primary)")
             return response
         
         # Fallback to Groq
@@ -82,6 +99,34 @@ class LLMClient:
             return None
         except Exception as e:
             logger.error(f"Ollama error: {e}")
+            return None
+    
+    def _call_gemini(self, prompt: str, system_prompt: str, max_tokens: int) -> Optional[str]:
+        """Call Gemini 1.5 Flash API."""
+        if not self.gemini_model:
+            return None
+        
+        try:
+            # Combine system prompt and user prompt for Gemini
+            full_prompt = f"{system_prompt}\n\nUser: {prompt}"
+            
+            response = self.gemini_model.generate_content(
+                full_prompt,
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=max_tokens,
+                    temperature=0.1,
+                    candidate_count=1,
+                )
+            )
+            
+            if response.text:
+                return response.text.strip()
+            else:
+                logger.warning("Gemini returned empty response")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Gemini API error: {e}")
             return None
     
     def _call_groq(self, prompt: str, system_prompt: str, max_tokens: int) -> Optional[str]:
@@ -223,9 +268,10 @@ class LLMClient:
         return brief.strip()
     
     def test_connection(self) -> Dict[str, bool]:
-        """Test connections to both LLM services."""
+        """Test connections to all LLM services."""
         results = {
             'ollama': False,
+            'gemini': False,
             'groq': False
         }
         
@@ -235,6 +281,20 @@ class LLMClient:
             results['ollama'] = response.status_code == 200
         except Exception:
             results['ollama'] = False
+        
+        # Test Gemini
+        if self.gemini_model:
+            try:
+                test_response = self.gemini_model.generate_content(
+                    "Test",
+                    generation_config=genai.types.GenerationConfig(
+                        max_output_tokens=10,
+                        temperature=0.1,
+                    )
+                )
+                results['gemini'] = bool(test_response.text)
+            except Exception:
+                results['gemini'] = False
         
         # Test Groq
         if self.groq_client:
