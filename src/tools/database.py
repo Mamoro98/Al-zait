@@ -3,7 +3,7 @@
 import sqlite3
 import os
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from loguru import logger
 from src.utils.config import Config
 
