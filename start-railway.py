@@ -19,7 +19,7 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
     """Simple health check handler for Railway."""
     
     def do_GET(self):
-        if self.path == '/health':
+        if self.path in ['/', '/health']:
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
