@@ -202,7 +202,8 @@ Respond ONLY with JSON:
         logger.info("🔍 Starting hourly news collection")
         
         # Create initial state for collection
-        initial_state = create_initial_state()
+        search_queries = Config.get_all_search_queries()
+        initial_state = create_initial_state(search_queries)
         if max_articles:
             initial_state["max_articles"] = max_articles
         
