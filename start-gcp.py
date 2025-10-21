@@ -150,6 +150,7 @@ def run_intelligent_agents():
 def run_interactive_bot():
     """Run FULL interactive Telegram bot with advanced features."""
     try:
+        import asyncio
         from src.bots.telegram_interactive_bot import TelegramInteractiveBot
         
         logger.info("🤖 Starting FULL Interactive Bot...")
@@ -161,8 +162,23 @@ def run_interactive_bot():
         
         logger.info("✅ Bot fully configured with advanced features")
         
-        # Start the bot
-        bot.start_bot_sync()  # This blocks
+        # Start the bot with proper async handling
+        async def run_bot():
+            await bot.start_bot()
+            
+        # Create new event loop for the bot
+        try:
+            asyncio.run(run_bot())
+        except RuntimeError as e:
+            if "cannot be called from a running event loop" in str(e):
+                # If we're in an existing event loop, use different approach
+                logger.info("Using existing event loop...")
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(run_bot())
+                loop.close()
+            else:
+                raise
         
     except KeyboardInterrupt:
         logger.info("🛑 Interactive bot stopped by user")
@@ -235,13 +251,15 @@ def main():
     # Validate configuration
     config_errors = Config.validate_config()
     if config_errors:
-        logger.error("❌ Configuration errors:")
+        logger.warning("⚠️ Configuration has placeholder values:")
         for error in config_errors:
-            logger.error(f"  - {error}")
-        logger.error("Please set environment variables in Google Cloud Run")
-        return
-    
-    logger.info("✅ Configuration validated")
+            logger.warning(f"  - {error}")
+        logger.warning("Service will run with limited functionality until API keys are configured")
+        logger.warning("Update environment variables in Google Cloud Run Console to enable full functionality")
+        config_valid = False
+    else:
+        logger.info("✅ Configuration validated")
+        config_valid = True
     
     # Initialize full system
     initialize_full_system()
@@ -252,10 +270,28 @@ def main():
     time.sleep(2)
     logger.info("✅ Health check server running")
     
-    # Choose mode based on environment
+    # Choose mode based on environment and configuration
     mode = os.getenv("GCP_MODE", "both")  # "agents", "bot", or "both"
     
-    if mode == "agents":
+    if not config_valid:
+        logger.warning("🚫 Configuration invalid, running health server only")
+        logger.info("📝 To enable full functionality:")
+        logger.info("   1. Go to Cloud Run Console")
+        logger.info("   2. Edit service environment variables")
+        logger.info("   3. Set real API keys (remove PLACEHOLDER values)")
+        logger.info("   4. Deploy new revision")
+        logger.info("")
+        logger.info("🏥 Health server will keep running at /health endpoint")
+        
+        # Keep the main thread alive for health server
+        try:
+            while True:
+                time.sleep(60)  # Sleep 1 minute
+                logger.info("💓 Health server running... waiting for configuration...")
+        except KeyboardInterrupt:
+            logger.info("🛑 Service stopped")
+            
+    elif mode == "agents":
         logger.info("🤖 Starting ONLY intelligent agents...")
         run_intelligent_agents()  # Blocks
         

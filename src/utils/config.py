@@ -60,17 +60,21 @@ class Config:
         """Validate that all required configuration values are set."""
         errors = []
         
-        if not cls.TELEGRAM_BOT_TOKEN:
-            errors.append("TELEGRAM_BOT_TOKEN is required")
+        # Check for placeholder values
+        placeholder_values = ["PLACEHOLDER", "YOUR_API_KEY", "CHANGE_ME", ""]
         
-        if not cls.TELEGRAM_CHAT_ID:
-            errors.append("TELEGRAM_CHAT_ID is required")
+        if not cls.TELEGRAM_BOT_TOKEN or cls.TELEGRAM_BOT_TOKEN in placeholder_values:
+            errors.append("TELEGRAM_BOT_TOKEN is required (currently placeholder)")
         
-        if not cls.NEWSAPI_KEY:
-            errors.append("NEWSAPI_KEY is required")
+        if not cls.TELEGRAM_CHAT_ID or cls.TELEGRAM_CHAT_ID in placeholder_values:
+            errors.append("TELEGRAM_CHAT_ID is required (currently placeholder)")
         
-        if not cls.GROQ_API_KEY and not cls.GEMINI_API_KEY:
-            errors.append("At least one of GROQ_API_KEY or GEMINI_API_KEY is required for LLM processing")
+        if not cls.NEWSAPI_KEY or cls.NEWSAPI_KEY in placeholder_values:
+            errors.append("NEWSAPI_KEY is required (currently placeholder)")
+        
+        if (not cls.GROQ_API_KEY or cls.GROQ_API_KEY in placeholder_values) and \
+           (not cls.GEMINI_API_KEY or cls.GEMINI_API_KEY in placeholder_values):
+            errors.append("At least one of GROQ_API_KEY or GEMINI_API_KEY is required for LLM processing (currently placeholders)")
         
         return errors
     

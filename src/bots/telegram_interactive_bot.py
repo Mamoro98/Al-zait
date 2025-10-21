@@ -364,7 +364,18 @@ class TelegramInteractiveBot:
     def start_bot_sync(self):
         """Synchronous wrapper to start the bot."""
         try:
-            asyncio.run(self.start_bot())
+            # Check if there's already a running event loop
+            try:
+                loop = asyncio.get_running_loop()
+                logger.info("Found existing event loop, creating task...")
+                # If there's already a loop, create a task
+                task = loop.create_task(self.start_bot())
+                return task
+            except RuntimeError:
+                # No running loop, safe to use asyncio.run()
+                logger.info("No existing event loop, creating new one...")
+                asyncio.run(self.start_bot())
+                
         except KeyboardInterrupt:
             logger.info("Bot stopped by user")
         except Exception as e:
