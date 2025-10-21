@@ -1,0 +1,96 @@
+# Google Cloud Build configuration for Al Zait News Agent
+# Automated CI/CD Pipeline: GitHub → Cloud Build → Cloud Run
+
+steps:
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-f'
+      - 'Dockerfile.gcp'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/al-zait:$COMMIT_SHA'
+      - '-t' 
+      - 'gcr.io/$PROJECT_ID/al-zait:latest'
+      - '.'
+    id: 'build-image'
+    
+  # Step 2: Push the image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/al-zait:$COMMIT_SHA']
+    id: 'push-image-sha'
+    waitFor: ['build-image']
+    
+  - name: 'gcr.io/cloud-builders/docker'  
+    args: ['push', 'gcr.io/$PROJECT_ID/al-zait:latest']
+    id: 'push-image-latest'
+    waitFor: ['build-image']
+    
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'al-zait-news-agent'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/al-zait:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '4Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '3600'
+      - '--concurrency'
+      - '160'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '0'
+      - '--set-env-vars'
+      - 'GOOGLE_CLOUD=true,GCP_CLOUD_RUN=true,ML_ENABLED=true,VECTOR_DB_ENABLED=true,ADVANCED_AUDIO_ENABLED=true,LOG_LEVEL=INFO,SCHEDULE_MINUTE=0,GCP_MODE=both,PYTHONUNBUFFERED=1,PYTHONPATH=/app/src,OMP_NUM_THREADS=2,TOKENIZERS_PARALLELISM=false'
+      - '--update-secrets'
+      - 'TELEGRAM_BOT_TOKEN=telegram-bot-token:latest,TELEGRAM_CHAT_ID=telegram-chat-id:latest,GROQ_API_KEY=groq-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest,NEWSAPI_KEY=newsapi-key:latest'
+    id: 'deploy-cloud-run'
+    waitFor: ['push-image-sha']
+
+  # Step 4: Verify deployment
+  - name: 'gcr.io/cloud-builders/curl'
+    args: 
+      - '-f'
+      - 'https://al-zait-news-agent-w5jwye4m5a-uc.a.run.app/health'
+    id: 'verify-deployment'
+    waitFor: ['deploy-cloud-run']
+
+# Store images in Google Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/al-zait:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/al-zait:latest'
+
+# Build configuration
+options:
+  machineType: 'E2_HIGHCPU_8'  # Use powerful machine for ML libraries
+  diskSizeGb: 100
+  logging: CLOUD_LOGGING_ONLY
+
+# Build timeout (ML libraries take time to build)
+timeout: '1800s'  # 30 minutes
+
+# Substitutions for environment-specific deployments
+substitutions:
+  _DEPLOY_REGION: 'us-central1'
+  _SERVICE_NAME: 'al-zait-news-agent'
+
+# Available substitutions:
+# $PROJECT_ID - Your Google Cloud project ID
+# $COMMIT_SHA - Git commit SHA
+# $BRANCH_NAME - Git branch name
+# $REPO_NAME - Repository name
+# $BUILD_ID - Cloud Build ID

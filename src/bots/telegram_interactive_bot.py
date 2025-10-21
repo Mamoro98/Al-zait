@@ -36,7 +36,9 @@ class TelegramInteractiveBot:
     
     def is_available(self) -> bool:
         """Check if the bot is properly configured."""
-        return bool(self.bot_token) and self.analyst.is_available()
+        # Bot is available if it has a token, regardless of vector DB status
+        # It can still respond to commands and basic questions
+        return bool(self.bot_token)
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command."""

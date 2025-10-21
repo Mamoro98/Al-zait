@@ -1,0 +1,96 @@
+# Google Cloud Run Service Configuration for Al Zait
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: al-zait-news-agent
+  annotations:
+    # Allow unauthenticated requests (for health checks and webhook)
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        # Resource allocation
+        run.googleapis.com/memory: "4Gi"
+        run.googleapis.com/cpu: "2"
+        # CPU allocation during request processing only
+        run.googleapis.com/cpu-throttling: "false"
+        # Maximum instances for cost control
+        run.googleapis.com/execution-environment: gen2
+        # Minimum instances to keep warm (0 for cost savings, 1 for performance)
+        autoscaling.knative.dev/minScale: "0"
+        # Maximum instances
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      # Timeout for long-running tasks (max 3600 seconds for Cloud Run)
+      timeoutSeconds: 3600
+      containers:
+      - name: al-zait
+        # Google Cloud project image
+        image: gcr.io/omer-project-437509/al-zait:latest
+        ports:
+        - containerPort: 8080
+          name: http1
+        env:
+        # Google Cloud Platform identification
+        - name: GOOGLE_CLOUD
+          value: "true"
+        - name: GCP_CLOUD_RUN
+          value: "true"
+        - name: ML_ENABLED
+          value: "true"
+        - name: VECTOR_DB_ENABLED
+          value: "true"
+        - name: ADVANCED_AUDIO_ENABLED
+          value: "true"
+        
+        # Logging configuration
+        - name: LOG_LEVEL
+          value: "INFO"
+        
+        # Scheduling configuration
+        - name: SCHEDULE_MINUTE
+          value: "0"
+        
+        # GCP mode (both agents and bot)
+        - name: GCP_MODE
+          value: "both"
+        
+        # Performance tuning
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONPATH
+          value: "/app/src"
+        - name: OMP_NUM_THREADS
+          value: "2"
+        - name: TOKENIZERS_PARALLELISM
+          value: "false"
+        
+        # API Keys (placeholder values - update after deployment)
+        - name: TELEGRAM_BOT_TOKEN
+          value: "PLACEHOLDER"
+        - name: TELEGRAM_CHAT_ID
+          value: "PLACEHOLDER"
+        - name: GROQ_API_KEY
+          value: "PLACEHOLDER"
+        - name: GEMINI_API_KEY
+          value: "PLACEHOLDER"
+        - name: NEWSAPI_KEY
+          value: "PLACEHOLDER"
+        
+        resources:
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+        
+        # Health check configuration (Cloud Run compatible)
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 60
+          timeoutSeconds: 30
+          failureThreshold: 3

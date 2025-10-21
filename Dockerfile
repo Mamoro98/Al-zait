@@ -26,8 +26,8 @@ ENV PYTHONPATH=/app/src
 ENV LOG_LEVEL=INFO
 ENV PYTHONUNBUFFERED=1
 
-# Expose port (Railway requirement)
-EXPOSE 8000
+# Expose port (Google Cloud Run uses PORT env variable)
+EXPOSE 8080
 
-# Start command - use production start script
-CMD ["python", "start.py"]
+# Start command - use GCP start script if available, otherwise regular start script
+CMD ["python", "start-gcp.py"]

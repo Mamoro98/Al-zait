@@ -1,0 +1,67 @@
+# Google Cloud Platform Dockerfile - FULL Al Zait with Cloud Run support
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for ML libraries and Cloud Run
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    libffi-dev \
+    libssl-dev \
+    libblas-dev \
+    liblapack-dev \
+    libatlas-base-dev \
+    gfortran \
+    pkg-config \
+    ffmpeg \
+    git \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements (FULL version with all ML libraries)
+COPY requirements.txt requirements.txt
+
+# Install Python dependencies with optimizations for Google Cloud
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install dependencies in optimized order (heavy ones first)
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir numpy scipy scikit-learn
+RUN pip install --no-cache-dir sentence-transformers
+RUN pip install --no-cache-dir chromadb
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create data directories
+RUN mkdir -p data/audio data/vector_db data/logs
+
+# Set environment variables for Google Cloud
+ENV PYTHONPATH="/app/src:$PYTHONPATH"
+ENV GOOGLE_CLOUD=true
+ENV GCP_CLOUD_RUN=true
+ENV ML_ENABLED=true
+ENV VECTOR_DB_ENABLED=true
+ENV ADVANCED_AUDIO_ENABLED=true
+
+# Google Cloud Run expects PORT environment variable
+ENV PORT=8080
+EXPOSE $PORT
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:$PORT/health || exit 1
+
+# Create non-root user for security (Cloud Run best practice)
+RUN useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Start command
+CMD ["python", "start-gcp.py"]

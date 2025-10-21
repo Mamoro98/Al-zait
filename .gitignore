@@ -1,9 +1,10 @@
-# Al Zait News Agent - Git Ignore
+# Al Zait News Agent - Git Ignore File
 
-# Environment variables
+# Environment variables and secrets
 .env
 .env.local
-.env.production
+.env.gcp
+*.env
 
 # Python
 __pycache__/
@@ -23,90 +24,91 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# Virtual environments
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
+# PyInstaller
+*.manifest
+*.spec
 
-# Database files
-data/*.db
-data/*.sqlite
-data/*.sqlite3
-
-# Log files
-data/*.log
-logs/
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-.tmp/
-.temp/
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# Coverage reports
+# Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
 .pytest_cache/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+.env/
 
-# Model files (if downloading models locally)
-models/
-*.bin
-*.model
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Backup files
-*.bak
-*.backup
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Test artifacts
-.pytest_cache/
-test-reports/
+# Application specific
+data/
+*.log
+*.db
+*.sqlite3
+
+# Audio files (generated)
+data/audio/*.mp3
+data/audio/*.wav
+
+# Vector database (generated)
+data/vector_db/
+chroma.sqlite3
+
+# Model cache
+model_cache/
+.cache/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
 
 # Docker
-.dockerignore
+Dockerfile.tmp
+docker-compose.override.yml
 
-# Node modules (if using any JavaScript tools)
-node_modules/
+# Cloud deployment
+cloud-run-deploy.yaml
+.gcloudignore
 
-# Sensitive data
-config/secrets.json
-private_keys/
-certificates/
+# Jupyter Notebooks
+.ipynb_checkpoints
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# APScheduler job store
-scheduler.db
+# Local development
+local_test.py
+debug_*.py
+scratch.py

@@ -21,7 +21,8 @@ class InteractiveAnalyst:
     
     def is_available(self) -> bool:
         """Check if the analyst is ready to answer questions."""
-        return self.vector_db.is_available()
+        # Always available for basic commands, even without vector DB
+        return True
     
     def add_articles_to_knowledge_base(self, articles: List[Dict[str, Any]]) -> int:
         """Add articles to the knowledge base for future Q&A."""
@@ -40,13 +41,8 @@ class InteractiveAnalyst:
         """
         logger.info(f"Processing question from user {user_id}: {question[:50]}...")
         
-        if not self.is_available():
-            return {
-                'answer': 'عذراً، نظام الخبير الإخباري غير متاح حالياً. يرجى المحاولة لاحقاً.',
-                'type': 'error',
-                'sources': [],
-                'confidence': 0
-            }
+        # Check if vector DB is available for advanced Q&A
+        vector_db_available = self.vector_db.is_available()
         
         # Clean and validate question
         question = question.strip()
@@ -66,18 +62,29 @@ class InteractiveAnalyst:
         self._add_to_conversation(user_id, 'user', question)
         
         try:
-            # Get answer using RAG
-            response = self.vector_db.answer_question(question, context_limit=5)
-            
-            # Enhance the response
-            enhanced_response = self._enhance_response(response, question)
-            
-            # Store response in conversation history
-            self._add_to_conversation(user_id, 'assistant', enhanced_response['answer'])
-            
-            logger.info(f"Generated response for user {user_id} (confidence: {enhanced_response['confidence']}%)")
-            
-            return enhanced_response
+            if vector_db_available:
+                # Get answer using RAG
+                response = self.vector_db.answer_question(question, context_limit=5)
+                
+                # Enhance the response
+                enhanced_response = self._enhance_response(response, question)
+                
+                # Store response in conversation history
+                self._add_to_conversation(user_id, 'assistant', enhanced_response['answer'])
+                
+                logger.info(f"Generated response for user {user_id} (confidence: {enhanced_response['confidence']}%)")
+                
+                return enhanced_response
+            else:
+                # Provide basic response without vector DB
+                basic_response = self._provide_basic_response(question, user_id)
+                
+                # Store response in conversation history
+                self._add_to_conversation(user_id, 'assistant', basic_response['answer'])
+                
+                logger.info(f"Generated basic response for user {user_id} (no vector DB)")
+                
+                return basic_response
             
         except Exception as e:
             logger.error(f"Error processing question: {e}")
@@ -293,3 +300,74 @@ class InteractiveAnalyst:
         answer += "\n🤖 الخبير الإخباري - وكالة الزيت للأنباء"
         
         return answer
+    
+    def _provide_basic_response(self, question: str, user_id: str) -> Dict[str, Any]:
+        """Provide basic response when vector DB is not available."""
+        question_lower = question.lower()
+        
+        # Handle common questions about Sudan
+        if any(word in question_lower for word in ['sudan', 'سودان']):
+            if any(word in question_lower for word in ['economy', 'اقتصاد', 'economic']):
+                answer = """📊 **الوضع الاقتصادي في السودان:**
+
+🏭 يواجه السودان تحديات اقتصادية كبيرة بما في ذلك:
+• التضخم والعملة
+• نقص الوقود والكهرباء  
+• تأثير الأزمة السياسية
+
+⚠️ **ملاحظة**: هذه معلومات عامة. للحصول على آخر التطورات الدقيقة، يحتاج النظام إلى قاعدة بيانات أكثر تفصيلاً."""
+
+            elif any(word in question_lower for word in ['politics', 'سياسة', 'political']):
+                answer = """🏛️ **الوضع السياسي في السودان:**
+
+🔄 يمر السودان بفترة انتقالية معقدة مع:
+• تحديات في الحكم والاستقرار
+• جهود للتحول الديمقراطي
+• تفاعلات إقليمية ودولية
+
+⚠️ **ملاحظة**: للحصول على آخر التطورات السياسية المحدثة، يحتاج النظام إلى الوصول لقاعدة الأخبار."""
+
+            elif any(word in question_lower for word in ['security', 'أمن', 'darfur', 'دارفور']):
+                answer = """🛡️ **الوضع الأمني في السودان:**
+
+⚡ التحديات الأمنية تشمل:
+• الاستقرار في مناطق مختلفة
+• قضايا دارفور والمناطق المتأثرة
+• جهود حفظ السلام
+
+⚠️ **ملاحظة**: لمعلومات أمنية محدثة ودقيقة، يحتاج النظام إلى مصادر إخبارية متخصصة."""
+            
+            else:
+                answer = """🇸🇩 **معلومات عامة عن السودان:**
+
+📍 السودان بلد في شمال شرق أفريقيا بتاريخ وثقافة عريقة.
+
+🏛️ **للحصول على معلومات محدثة ومفصلة** عن:
+• آخر الأخبار السياسية
+• التطورات الاقتصادية  
+• الأوضاع الأمنية
+• الشؤون الاجتماعية
+
+⚠️ **يحتاج النظام إلى قاعدة بيانات إخبارية متطورة (غير متاحة حالياً)**"""
+
+        else:
+            # General response for non-Sudan questions
+            answer = """🤖 **مرحباً! أنا وكالة الزيت للأنباء**
+
+🎯 **تخصصي**: الإجابة على أسئلة حول السودان مثل:
+• الأخبار السياسية
+• التطورات الاقتصادية
+• الأوضاع الأمنية
+• الشؤون الاجتماعية
+
+⚠️ **حالياً**: النظام في وضع محدود (بدون قاعدة بيانات متقدمة)
+✅ **لكن يمكنني**: الرد على الأوامر والأسئلة الأساسية
+
+💡 **جرب سؤالاً عن السودان!**"""
+
+        return {
+            'answer': answer,
+            'type': 'basic_response',
+            'sources': [],
+            'confidence': 50  # Medium confidence for basic responses
+        }
