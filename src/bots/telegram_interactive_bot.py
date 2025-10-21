@@ -353,12 +353,36 @@ class TelegramInteractiveBot:
             # Setup handlers
             self.setup_handlers()
             
-            # Start the bot
+            # Initialize and start for server environment
             logger.info("Starting Telegram Interactive Bot...")
-            await self.application.run_polling(drop_pending_updates=True)
+            await self.application.initialize()
+            await self.application.start()
+            
+            # Start polling in server-compatible way
+            await self.application.updater.start_polling(drop_pending_updates=True)
+            
+            logger.info("✅ Telegram bot started successfully!")
+            
+            # Keep running indefinitely
+            import asyncio
+            try:
+                while True:
+                    await asyncio.sleep(1)
+            except KeyboardInterrupt:
+                logger.info("Bot shutdown requested")
+            finally:
+                # Proper cleanup
+                try:
+                    await self.application.updater.stop()
+                    await self.application.stop() 
+                    await self.application.shutdown()
+                except Exception as cleanup_error:
+                    logger.warning(f"Cleanup warning: {cleanup_error}")
             
         except Exception as e:
             logger.error(f"Failed to start bot: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
     
     def start_bot_sync(self):
