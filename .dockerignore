@@ -1,52 +1,20 @@
-# Al Zait - Docker ignore file
-
-# Virtual environment
-venv/
-env/
-ENV/
-
-# Python cache
-__pycache__/
+venv*
+.git
+.gitignore
 *.pyc
-*.pyo
-*.pyd
-.Python
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
+__pycache__
+.env
+*.log
+data/*.db
+data/vector_db/*
+data/audio/*
+README.md
+docs/
+.pytest_cache
+.coverage
+node_modules
 .DS_Store
 Thumbs.db
-Desktop.ini
-
-# Git
-.git/
-.gitignore
-
-# Local data (will be created in container)
-data/*.db
-data/*.log
-
-# Documentation
-README.md
-*.md
-
-# Local environment file (use Railway env vars instead)
-.env
-
-# Test files
-tests/
-test_*.py
-
-# Development scripts
-run_once.py
-install.py
-
-# Logs and temp files
-*.log
-*.tmp
-.tmp/
+*.swp
+*.swo
+*~

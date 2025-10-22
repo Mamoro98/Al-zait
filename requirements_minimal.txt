@@ -1,0 +1,32 @@
+# MINIMAL REQUIREMENTS - Core Al Zait Functionality Only
+
+# Core AI framework (essential)
+langchain>=0.2.0
+langchain-community>=0.2.0
+
+# LLM providers (choose one - Groq is lightweight and fast)
+groq>=0.4.0
+google-generativeai>=0.8.0
+
+# News collection (essential)
+newsapi-python>=0.2.6
+feedparser>=6.0.0
+requests>=2.28.0
+
+# Telegram bot (essential)
+python-telegram-bot>=20.0
+
+# Scheduling and automation (essential)
+APScheduler>=3.10.0
+
+# Basic utilities (essential)
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+loguru>=0.7.0
+
+# SKIPPED (can add later if needed):
+# - langgraph (workflow orchestration - advanced feature)
+# - ollama (local LLM - heavy) 
+# - gTTS, pydub, mutagen (audio features - optional)
+# - chromadb, sentence-transformers (vector DB - very heavy)
+# - pytest, black, isort (development tools)

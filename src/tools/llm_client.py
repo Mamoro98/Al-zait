@@ -119,11 +119,28 @@ class LLMClient:
                 )
             )
             
-            if response.text:
-                return response.text.strip()
-            else:
-                logger.warning("Gemini returned empty response")
-                return None
+            # Check if response has candidates and handle finish_reason
+            if response.candidates:
+                candidate = response.candidates[0]
+                finish_reason = candidate.finish_reason
+                
+                if finish_reason == 2:  # MAX_TOKENS
+                    logger.warning("Gemini response hit token limit - trying with shorter prompt")
+                    # Try with reduced tokens
+                    if max_tokens > 500:
+                        return self._call_gemini(prompt, system_prompt, max_tokens // 2)
+                    else:
+                        logger.error("Cannot reduce tokens further, falling back to Groq")
+                        return self._call_groq(prompt, system_prompt, max_tokens)
+                elif finish_reason == 3:  # SAFETY
+                    logger.warning("Gemini response blocked by safety filters, trying Groq")
+                    return self._call_groq(prompt, system_prompt, max_tokens)
+                elif finish_reason == 1 or finish_reason == 5:  # STOP or OTHER
+                    if response.text:
+                        return response.text.strip()
+            
+            logger.warning("Gemini returned empty or invalid response")
+            return None
                 
         except Exception as e:
             logger.error(f"Gemini API error: {e}")

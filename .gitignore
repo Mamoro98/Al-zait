@@ -51,6 +51,7 @@ coverage.xml
 
 # Virtual environments
 venv/
+venv_*/
 ENV/
 env/
 .venv/
