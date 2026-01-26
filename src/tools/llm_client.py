@@ -172,9 +172,9 @@ class LLMClient:
             logger.error(f"Failed to parse clustering response: {e}")
             return [[offset + i] for i in range(len(articles))]
     
-    def summarize_event(self, articles: List[Dict[str, Any]]) -> str:
-        """Generate Arabic summary for a cluster of articles about the same event."""
-        from src.utils.prompts import ARABIC_SUMMARY_PROMPT
+    def summarize_event(self, articles: List[Dict[str, Any]], language: str = 'ar') -> str:
+        """Generate summary for a cluster of articles about the same event."""
+        from src.utils.prompts import get_summary_prompt
         
         # Prepare articles text (truncate content to fit context)
         articles_text = ""
@@ -182,42 +182,56 @@ class LLMClient:
             # Truncate content to stay within token limits
             max_length = Config.MAX_CONTENT_LENGTH
             truncated_content = article['content'][:max_length] + "..." if len(article['content']) > max_length else article['content']
-            articles_text += f"العنوان: {article['title']}\nالمصدر: {article['source']}\nالمحتوى: {truncated_content}\n\n"
+            if language == 'en':
+                articles_text += f"Title: {article['title']}\nSource: {article['source']}\nContent: {truncated_content}\n\n"
+            else:
+                articles_text += f"العنوان: {article['title']}\nالمصدر: {article['source']}\nالمحتوى: {truncated_content}\n\n"
         
-        prompt = ARABIC_SUMMARY_PROMPT.format(articles=articles_text)
+        prompt = get_summary_prompt(language).format(articles=articles_text)
         
         summary = self.generate_response(prompt, max_tokens=500)
         
         if not summary:
             # Fallback summary
+            if language == 'en':
+                return f"Breaking: {articles[0]['title']} - Source: {articles[0]['source']}"
             return f"خبر عاجل: {articles[0]['title']} - المصدر: {articles[0]['source']}"
         
         return summary.strip()
     
-    def compile_final_brief(self, summaries: List[str]) -> str:
+    def compile_final_brief(self, summaries: List[str], language: str = 'ar') -> str:
         """Compile individual summaries into a final formatted brief."""
-        from src.utils.prompts import BRIEF_COMPILATION_PROMPT
+        from src.utils.prompts import get_brief_prompt
         from datetime import datetime
         
         # Join summaries
         summaries_text = "\n".join([f"{i+1}. {summary}" for i, summary in enumerate(summaries)])
         
-        prompt = BRIEF_COMPILATION_PROMPT.format(summaries=summaries_text)
+        prompt = get_brief_prompt(language).format(summaries=summaries_text)
         
         brief = self.generate_response(prompt, max_tokens=1000)
         
         if not brief:
             # Fallback brief
             date_str = datetime.now().strftime("%Y-%m-%d")
-            fallback_brief = f"""موجز الزيت الإخباري - {date_str}
+            if language == 'en':
+                fallback_brief = f"""Al Zait News Brief - {date_str}
+
+Top Sudan news today:
+
+"""
+                for i, summary in enumerate(summaries, 1):
+                    fallback_brief += f"{i}. {summary}\n\n"
+                fallback_brief += "Al Zait News Agency"
+            else:
+                fallback_brief = f"""موجز الزيت الإخباري - {date_str}
 
 أهم الأخبار السودانية اليوم:
 
 """
-            for i, summary in enumerate(summaries, 1):
-                fallback_brief += f"{i}. {summary}\n\n"
-            
-            fallback_brief += "وكالة الزيت للأنباء"
+                for i, summary in enumerate(summaries, 1):
+                    fallback_brief += f"{i}. {summary}\n\n"
+                fallback_brief += "وكالة الزيت للأنباء"
             return fallback_brief
         
         return brief.strip()

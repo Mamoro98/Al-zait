@@ -46,8 +46,11 @@ class AgentState(TypedDict):
     
     # Configuration
     config: Optional[Dict[str, Any]]
+    
+    # User preferences
+    language: str  # 'ar' or 'en' - output language preference
 
-def create_initial_state(search_queries: List[str]) -> AgentState:
+def create_initial_state(search_queries: List[str], language: str = 'ar') -> AgentState:
     """Create an initial agent state with the given search queries."""
     return AgentState(
         search_queries=search_queries,
@@ -60,5 +63,6 @@ def create_initial_state(search_queries: List[str]) -> AgentState:
         execution_timestamp=datetime.now(),
         errors=[],
         processing_stats={},
-        config={}
+        config={},
+        language=language
     )

@@ -65,9 +65,9 @@ class AlZaitBot:
         )
         
         try:
-            # Run the news agent
+            # Run the news agent with user's language preference
             agent = self._get_news_agent()
-            result = agent.run_daily_brief()
+            result = agent.run_daily_brief(language=lang)
             
             brief = result.get('brief', '')
             stats_data = result.get('stats', {})

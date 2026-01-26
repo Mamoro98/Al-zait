@@ -23,6 +23,7 @@ def summarize_events(state: AgentState) -> AgentState:
         # Get data from state
         filtered_articles = state.get("filtered_articles", [])
         clustered_events = state.get("clustered_events", [])
+        language = state.get("language", "ar")
         
         logger.info(f"Summarizing {len(clustered_events)} events")
         
@@ -47,7 +48,7 @@ def summarize_events(state: AgentState) -> AgentState:
                     continue
                 
                 # Generate summary using LLM
-                summary_text = llm_client.summarize_event(cluster_articles)
+                summary_text = llm_client.summarize_event(cluster_articles, language=language)
                 
                 if summary_text:
                     # Create event cluster object
@@ -63,8 +64,12 @@ def summarize_events(state: AgentState) -> AgentState:
                     
                     # Create fallback summary
                     main_article = cluster_articles[0]
-                    fallback_summary = (f"خبر عاجل: {main_article['title']} "
-                                     f"- المصدر: {main_article['source']}")
+                    if language == 'en':
+                        fallback_summary = (f"Breaking: {main_article['title']} "
+                                         f"- Source: {main_article['source']}")
+                    else:
+                        fallback_summary = (f"خبر عاجل: {main_article['title']} "
+                                         f"- المصدر: {main_article['source']}")
                     
                     event_cluster = EventCluster(
                         articles=cluster_articles,
@@ -81,7 +86,7 @@ def summarize_events(state: AgentState) -> AgentState:
                 try:
                     if cluster and cluster[0] < len(filtered_articles):
                         main_article = filtered_articles[cluster[0]]
-                        fallback_summary = f"خبر: {main_article['title']}"
+                        fallback_summary = f"News: {main_article['title']}" if language == 'en' else f"خبر: {main_article['title']}"
                         
                         event_cluster = EventCluster(
                             articles=[main_article],

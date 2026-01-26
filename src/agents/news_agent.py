@@ -51,17 +51,18 @@ class AlZaitNewsAgent:
         logger.info("Workflow built successfully with 7 nodes")
         return workflow
     
-    def run_daily_brief(self, search_queries: list[str] = None) -> dict:
+    def run_daily_brief(self, search_queries: list[str] = None, language: str = 'ar') -> dict:
         """
         Run the daily news brief generation process.
         
         Args:
             search_queries: List of search queries to use (optional)
+            language: Output language preference ('ar' or 'en')
             
         Returns:
             Dictionary with execution results
         """
-        logger.info("Starting Al Zait daily news brief generation")
+        logger.info(f"Starting Al Zait daily news brief generation (language: {language})")
         
         # Use default search queries if none provided
         if search_queries is None:
@@ -71,7 +72,7 @@ class AlZaitNewsAgent:
         
         try:
             # Create initial state
-            initial_state = create_initial_state(search_queries)
+            initial_state = create_initial_state(search_queries, language=language)
             
             # Execute the workflow
             logger.info("Executing LangGraph workflow...")
