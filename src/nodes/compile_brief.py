@@ -42,8 +42,17 @@ def compile_brief(state: AgentState) -> AgentState:
             state["final_brief"] = empty_brief
             return state
         
-        # Extract summary texts
+        # Extract summary texts and collect source links
         summaries = [event["summary"] for event in event_summaries]
+        
+        # Collect all unique source URLs
+        source_links = []
+        for event in event_summaries:
+            for article in event.get("articles", []):
+                url = article.get("url", "")
+                source = article.get("source", "")
+                if url and url not in [link[1] for link in source_links]:
+                    source_links.append((source, url))
         
         # Use LLM to compile final brief
         logger.info("Using LLM to compile final brief")
@@ -54,6 +63,12 @@ def compile_brief(state: AgentState) -> AgentState:
         if not compiled_brief:
             logger.warning("LLM brief compilation failed, creating manual brief")
             compiled_brief = _create_manual_brief(summaries)
+        
+        # Add source links at the end
+        if source_links:
+            compiled_brief += "\n\n📎 المصادر:\n"
+            for i, (source, url) in enumerate(source_links[:5], 1):  # Max 5 links
+                compiled_brief += f"{i}. {source}: {url}\n"
         
         # Update state
         state["final_brief"] = compiled_brief
@@ -123,7 +138,7 @@ def _get_arabic_date() -> str:
     except Exception:
         return datetime.now().strftime("%Y-%m-%d")
 
-def _create_manual_brief(summaries: list[str]) -> str:
+def _create_manual_brief(summaries: list[str], source_links: list = None) -> str:
     """Create a manual brief when LLM compilation fails."""
     current_date = _get_arabic_date()
     
@@ -136,6 +151,13 @@ def _create_manual_brief(summaries: list[str]) -> str:
     
     for i, summary in enumerate(summaries, 1):
         brief += f"{i}. {summary}\n\n"
+    
+    # Add source links if provided
+    if source_links:
+        brief += "📎 المصادر:\n"
+        for i, (source, url) in enumerate(source_links[:5], 1):
+            brief += f"{i}. {source}: {url}\n"
+        brief += "\n"
     
     brief += """📡 وكالة الزيت للأنباء
 🤖 تقرير آلي مدعوم بالذكاء الاصطناعي"""
