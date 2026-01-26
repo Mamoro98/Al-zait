@@ -68,6 +68,16 @@ class NewsDatabase:
                 )
             """)
             
+            # Table for user preferences
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_preferences (
+                    user_id TEXT PRIMARY KEY,
+                    language TEXT DEFAULT 'ar',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
             conn.commit()
     
     def is_url_processed(self, url: str) -> bool:
@@ -184,6 +194,33 @@ class NewsDatabase:
             conn.execute("DELETE FROM processed_articles")
             conn.commit()
             logger.info("Cleared all processed URLs from database")
+    
+    def get_user_language(self, user_id: str) -> str:
+        """Get user's preferred language (default: 'ar')."""
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT language FROM user_preferences WHERE user_id = ?",
+                (str(user_id),)
+            )
+            row = cursor.fetchone()
+            return row['language'] if row else 'ar'
+    
+    def set_user_language(self, user_id: str, language: str) -> bool:
+        """Set user's preferred language."""
+        if language not in ('ar', 'en'):
+            return False
+        
+        with self._get_connection() as conn:
+            conn.execute("""
+                INSERT INTO user_preferences (user_id, language, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    language = excluded.language,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (str(user_id), language))
+            conn.commit()
+            logger.info(f"Set language for user {user_id} to {language}")
+            return True
     
     def get_statistics(self) -> dict:
         """Get database statistics."""
