@@ -178,6 +178,13 @@ class NewsDatabase:
             conn.commit()
             logger.info(f"Cleaned up database records older than {days_to_keep} days")
     
+    def clear_processed_urls(self):
+        """Clear all processed URLs to allow re-fetching articles."""
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM processed_articles")
+            conn.commit()
+            logger.info("Cleared all processed URLs from database")
+    
     def get_statistics(self) -> dict:
         """Get database statistics."""
         with self._get_connection() as conn:

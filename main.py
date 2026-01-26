@@ -229,6 +229,8 @@ def main():
     parser.add_argument("--test", action="store_true", help="Test configuration and connections")
     parser.add_argument("--run-once", action="store_true", help="Run briefing once (for testing)")
     parser.add_argument("--schedule", action="store_true", help="Start automated scheduler")
+    parser.add_argument("--bot", action="store_true", help="Run interactive Telegram bot")
+    parser.add_argument("--both", action="store_true", help="Run both scheduler and bot together")
     
     args = parser.parse_args()
     
@@ -238,6 +240,25 @@ def main():
         scheduler.test_configuration()
     elif args.run_once:
         scheduler.run_once()
+    elif args.bot:
+        from src.tools.bot_handler import run_bot
+        run_bot()
+    elif args.both:
+        # Run scheduler in background thread, bot in main thread
+        import threading
+        from src.tools.bot_handler import AlZaitBot
+        
+        # Start scheduler in background
+        def run_scheduler():
+            scheduler.start_scheduler()
+        
+        scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+        scheduler_thread.start()
+        logger.info("Scheduler running in background thread")
+        
+        # Run bot in main thread
+        bot = AlZaitBot()
+        bot.run()
     elif args.schedule:
         scheduler.start_scheduler()
     else:

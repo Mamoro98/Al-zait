@@ -1,0 +1,16 @@
+[Unit]
+Description=Al Zait News Agent - Sudan News Bot
+After=network.target
+
+[Service]
+Type=simple
+User=omer_aims_ac_za
+WorkingDirectory=/home/omer_aims_ac_za/Al-zait
+Environment="PATH=/home/omer_aims_ac_za/Al-zait/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=/home/omer_aims_ac_za/Al-zait/.env
+ExecStart=/usr/bin/python3 /home/omer_aims_ac_za/Al-zait/start.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

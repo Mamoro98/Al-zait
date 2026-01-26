@@ -1,0 +1,22 @@
+# Fly.io configuration for Al Zait News Agent
+app = 'al-zait-news'
+primary_region = 'fra'  # Frankfurt (close to Africa)
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  LOG_LEVEL = 'INFO'
+  PYTHONUNBUFFERED = '1'
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false  # Keep running for bot
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
