@@ -12,6 +12,21 @@ from src.agents.state import ArticleData
 class NewsClient:
     """Client for fetching news from various sources."""
     
+    # Keywords that indicate Sudan-related content
+    SUDAN_KEYWORDS = [
+        # English
+        'sudan', 'sudanese', 'khartoum', 'darfur', 'omdurman', 'port sudan',
+        'rsf', 'rapid support forces', 'al-burhan', 'hemeti', 'hemedti',
+        # Arabic
+        'السودان', 'سوداني', 'سودانية', 'الخرطوم', 'دارفور', 'أم درمان',
+        'بورتسودان', 'قوات الدعم السريع', 'البرهان', 'حميدتي',
+    ]
+    
+    def _is_sudan_related(self, title: str, content: str) -> bool:
+        """Check if an article is related to Sudan."""
+        text = (title + ' ' + content).lower()
+        return any(keyword.lower() in text for keyword in self.SUDAN_KEYWORDS)
+    
     def __init__(self):
         """Initialize the news client with API keys."""
         self.newsapi_client = None
@@ -100,12 +115,19 @@ class NewsClient:
                 # Filter articles by query keywords
                 query_words = query.lower().split()
                 
-                for entry in feed.entries[:Config.MAX_ARTICLES_PER_QUERY]:
+                for entry in feed.entries[:Config.MAX_ARTICLES_PER_QUERY * 3]:  # Check more entries
                     # Check if query matches title or description
-                    title = getattr(entry, 'title', '').lower()
-                    summary = getattr(entry, 'summary', '').lower()
+                    title = getattr(entry, 'title', '')
+                    summary = getattr(entry, 'summary', '')
                     
-                    if any(word in title or word in summary for word in query_words):
+                    # Must be Sudan-related
+                    if not self._is_sudan_related(title, summary):
+                        continue
+                    
+                    title_lower = title.lower()
+                    summary_lower = summary.lower()
+                    
+                    if any(word in title_lower or word in summary_lower for word in query_words) or self._is_sudan_related(title, summary):
                         # Get full content if available
                         content = getattr(entry, 'content', [{}])
                         if content and isinstance(content, list):
