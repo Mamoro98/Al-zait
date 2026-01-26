@@ -172,7 +172,7 @@ class AlZaitBot:
         self.db.set_user_language(str(user_id), 'ar')
         
         await update.message.reply_text(
-            get_text('language_changed', 'ar', lang='العربية 🇸🇩'),
+            get_text('language_changed', 'ar', language='العربية 🇸🇩'),
             parse_mode='HTML'
         )
         logger.info(f"User {user_id} changed language to Arabic")
@@ -183,7 +183,7 @@ class AlZaitBot:
         self.db.set_user_language(str(user_id), 'en')
         
         await update.message.reply_text(
-            get_text('language_changed', 'en', lang='English 🇬🇧'),
+            get_text('language_changed', 'en', language='English 🇬🇧'),
             parse_mode='HTML'
         )
         logger.info(f"User {user_id} changed language to English")
