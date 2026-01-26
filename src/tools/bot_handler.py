@@ -161,7 +161,7 @@ class AlZaitBot:
         
         message = f"""{get_text('language_title', lang)}
 
-{get_text('language_current', lang, lang=lang_name)}
+{get_text('language_current', lang, language=lang_name)}
 {get_text('language_options', lang)}"""
         
         await update.message.reply_text(message, parse_mode='HTML')

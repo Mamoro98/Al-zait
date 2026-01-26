@@ -50,7 +50,7 @@ TRANSLATIONS = {
         
         # Language
         'language_title': '🌐 <b>إعدادات اللغة</b>',
-        'language_current': 'اللغة الحالية: <b>{lang}</b>',
+        'language_current': 'اللغة الحالية: <b>{language}</b>',
         'language_options': '\nاختر اللغة:\n/language_ar - العربية 🇸🇩\n/language_en - English 🇬🇧',
         'language_changed': '✅ تم تغيير اللغة إلى: <b>{lang}</b>',
         'language_ar_name': 'العربية',
@@ -129,7 +129,7 @@ News brief is sent automatically every day at 7 AM.
         
         # Language
         'language_title': '🌐 <b>Language Settings</b>',
-        'language_current': 'Current language: <b>{lang}</b>',
+        'language_current': 'Current language: <b>{language}</b>',
         'language_options': '\nChoose language:\n/language_ar - العربية 🇸🇩\n/language_en - English 🇬🇧',
         'language_changed': '✅ Language changed to: <b>{lang}</b>',
         'language_ar_name': 'Arabic',
