@@ -52,20 +52,26 @@ class Config:
     RSS_FEEDS: List[str] = os.getenv(
         "RSS_FEEDS",
         ",".join([
-            # Arabic Sources
+            # Sudan-Specific Arabic Sources (Priority)
+            "http://www.sudantribune.com/spip.php?page=backend",
+            "https://www.dabangasudan.org/ar/all-news/rss.xml",
+            "https://www.dabangasudan.org/en/all-news/rss.xml",
+            "https://www.alrakoba.net/feed/",
+            "https://www.sudanile.com/feed/",
+            "https://sudaneseonline.com/feed/",
+            # Arabic News Sources
+            "https://www.aljazeera.net/rss/all.xml",
             "https://www.aljazeera.com/xml/rss/all.xml",
             "https://feeds.bbci.co.uk/arabic/rss.xml",
             "https://www.alarabiya.net/feed/rss2.xml",
             "https://www.france24.com/ar/rss",
             "https://www.skynewsarabia.com/rss",
-            # Sudan-Specific
-            "http://www.sudantribune.com/spip.php?page=backend",
-            "https://www.dabangasudan.org/en/all-news/rss.xml",
+            "https://arabic.rt.com/rss/",
             # English Sources
-            "https://www.aljazeera.com/xml/rss/all.xml",
             "https://feeds.bbci.co.uk/news/world/africa/rss.xml",
             "https://www.middleeasteye.net/rss",
             "https://www.reuters.com/world/africa/rss",
+            "https://africanews.com/feed/",
         ])
     ).split(",")
     
